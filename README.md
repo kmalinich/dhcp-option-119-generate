@@ -1,11 +1,11 @@
 # dhcp-option-119-generator
 
-Generate hex value for Meraki DHCP option 119 (search domain list)
+Generate hex value for Meraki DHCP option 119 (search domain list). It ain't great, but it might help.
 
 ## Input
 
 ```sh
-~ $ node ./dhcp-option-119-generate.js z1.prod.hotgarbagellc.net prod.hotgarbagellc.net hotgarbagellc.net
+~ $ ./dhcp-option-119-generate.js z1.prod.hotgarbagellc.net prod.hotgarbagellc.net hotgarbagellc.net
 ```
 
 ## Output
@@ -17,8 +17,9 @@ Generate hex value for Meraki DHCP option 119 (search domain list)
     'prod.hotgarbagellc.net',
     'hotgarbagellc.net'
   ],
-  hexString: '02:7a:31:00:04:70:72:6f:64:00:0d:68:6f:74:67:61:72:62:61:67:65:6c:6c:63:00:03:6e:65:74:00:c0:04:c0:0a:c0:19:c0:0a:c0:19'
+  hexString: '02:7a:31:04:70:72:6f:64:0d:68:6f:74:67:61:72:62:61:67:65:6c:6c:63:03:6e:65:74:00:c0:03:c0:08'
 }
+
 ```
 
 ## Thanks

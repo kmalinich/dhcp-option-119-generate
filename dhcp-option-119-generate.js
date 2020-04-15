@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// node dhcp-option-119-generate.js z1.prod.hotgarbagellc.net prod.hotgarbagellc.net hotgarbagellc.net
+// $ ./dhcp-option-119-generate.js z1.prod.hotgarbagellc.net prod.hotgarbagellc.net hotgarbagellc.net
 
 
 const domains = process.argv.slice(2);
@@ -13,11 +13,46 @@ let hexArray = [];
 let domainSegmentIndexes = {};
 
 
-domains.forEach(domain => {
+function array2ascii(array) {
+	// Convert hexArray into string of ASCII character codes, separated by colons (for Meraki)
+	let string = '';
+
+	array.forEach(entry => {
+		if (string !== '') string += ':';
+
+		string += entry.toString(16).padStart(2, '0');
+
+		// console.log('entry: %s, hexStr: %s', entry.toString().padStart(3), string);
+	});
+
+	return string;
+}
+
+// After writing this, I realized that accepting the duplication on the CLI inputs was a mistake,
+// evidenced by the fact that I had to hack around it with the compressedCount thing
+//
+// Oops
+//
+// It does appear to work though
+
+domains.forEach((domain, domainIndex) => {
 	// Split the domain into an array of domain segments, using '.' as the separator
 	const domainSegments = domain.split('.');
 
-	domainSegments.forEach(domainSegment => {
+	// Number of times 0xC0 compression has occured per domain
+	let compressedCount = 0;
+
+	domainSegments.forEach((domainSegment, domainSegmentIndex) => {
+		if (domainIndex > 1) {
+			compressedCount = 1;
+			return;
+		}
+
+		if (domainIndex > 0 && domainSegmentIndex > 1) {
+			compressedCount = 1;
+			return;
+		}
+
 		// Create an array of ASCII character codes from the domain segment string
 		const domainSegmentArray = Array.from(domainSegment).map(c => c.charCodeAt(0));
 
@@ -26,6 +61,8 @@ domains.forEach(domain => {
 
 		switch (typeof domainSegmentIndexes[domainSegment]) {
 			case 'number' : {
+				compressedCount++;
+
 				// Instead append [ 0xC0, segmentIndex ] to hexArray, compliant with the defined compression standard:
 				// https://tools.ietf.org/html/rfc1035#section-4.1.4
 				hexArray = hexArray.concat([ 0xC0, domainSegmentIndexes[domainSegment] ]);
@@ -35,9 +72,6 @@ domains.forEach(domain => {
 
 
 			default : {
-				// Add null byte terminator to the end of the segment array
-				domainSegmentArray.push(0x00);
-
 				// Add domainSegmentArray to global hexArray
 				hexArray = hexArray.concat(domainSegmentArray);
 
@@ -46,30 +80,27 @@ domains.forEach(domain => {
 			}
 		}
 
-
 		// console.log({
 		// 	domainSegmentIndexes,
 
 		// 	domain,
-		// 	domainSegment,
+		// 	domainIndex,
 
-		// 	domainSegmentArray : Buffer.from(domainSegmentArray),
-		// 	hexArray           : Buffer.from(hexArray),
+		// 	domainSegment,
+		// 	domainSegmentIndex,
+
+		// 	domainSegmentArray : array2ascii(domainSegmentArray),
+		// 	hexArray           : array2ascii(hexArray),
 		// });
 	});
+
+	// Add null byte terminator after each domain, if no domain compression has occured
+	if (compressedCount === 0) hexArray.push(0x00);
 });
 
 
-// Convert hexArray into string of hex characters, separated by colons (for Meraki)
-let hexString = '';
+const hexString = array2ascii(hexArray);
 
-hexArray.forEach(entry => {
-	if (hexString !== '') hexString += ':';
-
-	hexString += entry.toString(16).padStart(2, '0');
-
-	// console.log('entry: %s, hexStr: %s', entry.toString().padStart(3), hexString);
-});
 
 console.log({
 	domains,
